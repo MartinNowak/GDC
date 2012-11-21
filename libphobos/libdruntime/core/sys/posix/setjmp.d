@@ -71,7 +71,26 @@ version( linux )
     }
     else version (PPC64)
     {
-        alias long[64] __jmp_buf;   
+        alias long[64] __jmp_buf;
+    }
+    else version (MIPS)
+    {
+        struct __jmp_buf
+        {
+            void * __pc;
+            void * __sp;
+            version (MIPS_O32)
+                int __regs[8];
+            else
+                long __regs[8];
+            void * __fp;
+            void * __gp;
+            int __fpc_csr;
+            version (MIPS_N64)
+                double __fpregs[8];
+            else
+                double __fpregs[6];
+        }
     }
     else
         static assert(0);
