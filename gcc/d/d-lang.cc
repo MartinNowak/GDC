@@ -188,6 +188,61 @@ d_gcc_is_target_win32 (void)
   return is_target_win32;
 }
 
+#ifdef D_TARGET_ARCH
+static int
+d_target_arch_is64bit (void)
+{
+#ifdef D_TARGET_ARCH_MIPS
+  return TARGET_64BIT ? 1 : 0;
+#else
+#  error unhandled D_TARGET_ARCH
+#endif
+}
+
+static void
+d_target_arch_versyms (void)
+{
+#ifdef D_TARGET_ARCH_MIPS
+  VersionCondition::addPredefinedGlobalIdent("MIPS");
+  if (TARGET_64BIT)
+      VersionCondition::addPredefinedGlobalIdent("MIPS64");
+
+  switch (mips_abi)
+  {
+  case ABI_32:
+    VersionCondition::addPredefinedGlobalIdent("MIPS_O32");
+    break;
+
+  case ABI_O64:
+    VersionCondition::addPredefinedGlobalIdent("MIPS_O64");
+    break;
+
+  case ABI_N32:
+    VersionCondition::addPredefinedGlobalIdent("MIPS_N32");
+    break;
+
+  case ABI_64:
+    VersionCondition::addPredefinedGlobalIdent("MIPS_N64");
+    break;
+
+ case ABI_EABI:
+    VersionCondition::addPredefinedGlobalIdent("MIPS_EABI");
+    break;
+
+  default:
+    gcc_unreachable();
+  }
+
+  if (TARGET_HARD_FLOAT_ABI)
+      VersionCondition::addPredefinedGlobalIdent("MIPS_HardFloat");
+  else
+      VersionCondition::addPredefinedGlobalIdent("MIPS_SoftFloat");
+#else
+#  error unhandled D_TARGET_ARCH
+#endif
+}
+#endif /* D_TARGET_ARCH */
+
 static bool
 d_init (void)
 {
@@ -195,7 +250,9 @@ d_init (void)
 
   /* Currently, is64bit indicates a 64-bit target in general and is not
      Intel-specific. */
-#ifdef TARGET_64BIT
+#ifdef D_TARGET_ARCH
+  global.params.is64bit = d_target_arch_is64bit();
+#elif defined TARGET_64BIT
   global.params.is64bit = TARGET_64BIT ? 1 : 0;
 #else
   /* TARGET_64BIT is only defined on biarched archs defaulted to 64-bit
@@ -234,7 +291,9 @@ d_init (void)
   VersionCondition::addPredefinedGlobalIdent ("GNU");
   VersionCondition::addPredefinedGlobalIdent ("D_Version2");
 
-#ifdef D_CPU_VERSYM64
+#ifdef D_TARGET_ARCH
+  d_target_arch_versyms();
+#elif defined D_CPU_VERSYM64
   if (global.params.is64bit == 1)
     cpu_versym = D_CPU_VERSYM64;
 #  ifdef D_CPU_VERSYM
