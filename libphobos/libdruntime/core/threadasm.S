@@ -142,4 +142,69 @@ _fiber_switchContext:
     /* Return and switch context */
     blr
 
+#elif defined(__mips__) && _MIPS_SIM == _ABIO32
+/************************************************************************************
+ * MIPS ASM BITS
+ ************************************************************************************/
+
+/**
+ * Performs a context switch.
+ *
+ * r3 - old context pointer
+ * r4 - new context pointer
+ *
+ */
+.text
+.globl fiber_switchContext
+fiber_switchContext:
+#ifdef __mips_soft_float
+    addiu $sp, $sp, -(4 + 10 * 4)
+#else
+    addiu $sp, $sp, -(4 + 10 * 4 + 6 * 8)
+    sdcl $f20, 84($sp)
+    sdcl $f22, 76($sp)
+    sdcl $f24, 68($sp)
+    sdcl $f26, 60($sp)
+    sdcl $f28, 52($sp)
+    sdcl $f30, 44($sp)
+#endif
+    sw $gp, 40($sp)
+    sw $s0, 36($sp)
+    sw $s1, 32($sp)
+    sw $s2, 28($sp)
+    sw $s3, 24($sp)
+    sw $s4, 20($sp)
+    sw $s5, 16($sp)
+    sw $s6, 12($sp)
+    sw $s7,  8($sp)
+    sw $s8,  4($sp)
+    sw $ra,  0($sp)
+
+    sw $sp, 0($a0)
+    move $sp, $a1
+
+    lw $ra,  0($sp)
+    lw $s8,  4($sp)
+    lw $s7,  8($sp)
+    lw $s6, 12($sp)
+    lw $s5, 16($sp)
+    lw $s4, 20($sp)
+    lw $s3, 24($sp)
+    lw $s2, 28($sp)
+    lw $s1, 32($sp)
+    lw $s0, 36($sp)
+    lw $gp, 40($sp)
+#ifdef __mips_soft_float
+    addiu $sp, $sp, (4 + 10 * 4)
+#else
+    lwcl $f30, 44($sp)
+    lwcl $f28, 52($sp)
+    lwcl $f26, 60($sp)
+    lwcl $f24, 68($sp)
+    lwcl $f22, 76($sp)
+    lwcl $f20, 84($sp)
+    addiu $sp, $sp, (4 + 10 * 4 + 6 * 8)
+#endif
+
+    jr $ra
 #endif

@@ -3133,6 +3133,11 @@ private
         version( Posix )
             version = AsmPPC_Posix;
     }
+    else version( MIPS_O32 )
+    {
+        version( Posix )
+            version = AsmMIPS_O32_Posix;
+    }
 
 
     version( Posix )
@@ -3144,6 +3149,7 @@ private
         version( AsmX86_64_Windows ) {} else
         version( AsmX86_64_Posix )   {} else
         version( AsmPPC_Posix )      {} else
+        version( AsmMIPS_O32_Posix ) {} else
         {
             // NOTE: The ucontext implementation requires architecture specific
             //       data definitions to operate so testing for it must be done
@@ -3219,9 +3225,10 @@ private
     }
 
 
-  // NOTE: If AsmPPC_Posix is defined then the context switch routine will
-  //       be defined externally until inline PPC ASM is supported.
+  // NOTE: MIPS and PPC routines are defined in threadasm.S
   version( AsmPPC_Posix )
+    extern (C) void fiber_switchContext( void** oldp, void* newp );
+  else version( AsmMIPS_O32_Posix )
     extern (C) void fiber_switchContext( void** oldp, void* newp );
   else
     extern (C) void fiber_switchContext( void** oldp, void* newp )
@@ -3380,6 +3387,8 @@ private
             swapcontext( **(cast(ucontext_t***) oldp),
                           *(cast(ucontext_t**)  newp) );
         }
+        else
+            static assert(0, "Not implemented");
     }
 }
 
@@ -4151,6 +4160,30 @@ private:
             }
 
             assert( (cast(size_t) pstack & 0x0f) == 0 );
+        }
+        else version( AsmMIPS_O32_Posix )
+        {
+            version ( MIPS_HardFloat )
+            {
+                push(0); push(0); // $f20
+                push(0); push(0); // $f22
+                push(0); push(0); // $f24
+                push(0); push(0); // $f26
+                push(0); push(0); // $f28
+                push(0); push(0); // $f30
+            }
+
+            push(0); // gp
+            push(0); // s0
+            push(0); // s1
+            push(0); // s2
+            push(0); // s3
+            push(0); // s4
+            push(0); // s5
+            push(0); // s6
+            push(0); // s7
+            push(0); // s8
+            push(cast(size_t) &fiber_entryPoint); // ra
         }
         else static if( __traits( compiles, ucontext_t ) )
         {
